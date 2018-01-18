@@ -1,0 +1,33 @@
+install.packages("forecast")
+library(forecast)
+library(ggplot2)
+# Extract Clay Production (1871 To 1970) Data From Datamarket.com
+Annual_Stock <- read.csv("/Users/nex/Downloads/annual-common-stock-price-us-187.csv")
+head(Annual_Stock)
+Annual_Stock$Annual
+Annual_Stock$Year
+is.na(Annual_Stock)
+
+
+# Check Whether Data is Time Series 
+is.ts(Annual_Stock)
+
+
+# Convert Data into Time Series 
+Annual_Stock.ts <-ts(Annual_Stock, start=1871, end=1970,
+                     frequency=12)
+is.ts(Annual_Stock.ts)
+
+# Decompostion of additive time series 
+Annual_Stock.addt <- decompose(Annual_Stock.ts[,2], type="additive")
+plot(Annual_Stock.decomp)
+
+# Decomposition of multiplicative time series 
+Annual_Stock.mult <- decompose(Annual_Stock.ts[,2], type="multiplicative")
+plot(Annual_Stock.mult)
+
+# Naive Bayes Forecast
+fit <- stl(Annual_Stock.ts[,2], s.window="periodic")
+autoplot(forecast(fit,method="naive"))
+
+
