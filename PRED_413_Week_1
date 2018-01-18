@@ -1,0 +1,32 @@
+install.packages("pdfetch")
+install.packages("forecast")
+library(pdfetch)
+library(forecast)
+
+# Load Data From Yahoo Finance Into R
+pdfetch_YAHOO("NKE",fields=c("open","high", "low", "close", "adjclose","volume"), from=as.Date("2016-01-10"),
+              to=Sys.Date(), interval="1d")
+
+NKE <- pdfetch_YAHOO("NKE",fields=c("open","high", "low", "close", "adjclose","volume"), from=as.Date("2016-01-10"),
+                     to=Sys.Date(), interval="1d")
+View(NKE)
+
+# Convert "NKE" Data into Time Series Data.
+NKEseries <- ts(NKE$NKE.adjclose)
+View(NKEseries)
+
+plot.ts(NKEseries)
+
+
+
+# Apply Regression Function To "NKE" Time Series Data
+NKE_trend <- tslm(NKEseries ~ trend)
+View(NKE_trend)
+summary(NKE_trend)
+
+
+
+# Develop a Forecast model
+
+plot(forecast(NKE_trend, h=30),main= "Nike Forecast", ylab="Adjusted Closing", xlab="Days")
+
