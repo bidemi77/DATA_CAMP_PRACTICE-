@@ -13,3 +13,76 @@ plot(milk/monthdays, main="Average milk production per cow per day",
 
 # Evaluating Forecast Accuracy
 # Forecast Errors,MAE, RMSE,MAPE.
+
+beer2 <- window(ausbeer,start=1992,end=2006-.1)
+
+beerfit1 <- meanf(beer2,h=11)
+beerfit2 <- rwf(beer2,h=11)
+beerfit3 <- snaive(beer2,h=11)
+
+plot(beerfit1, plot.conf=FALSE,
+  main="Forecasts for quarterly beer production")
+lines(beerfit2$mean,col=2)
+lines(beerfit3$mean,col=3)
+lines(ausbeer)
+legend("topright", lty=1, col=c(4,2,3),
+  legend=c("Mean method","Naive method","Seasonal naive method"))
+beer3 <- window(ausbeer, start=2006)
+accuracy(beerfit1, beer3)
+accuracy(beerfit2, beer3)
+accuracy(beerfit3, beer3) 
+
+dj2 <- window(dj, end=250)
+plot(dj2, main="Dow Jones Index (daily ending 15 Jul 94)",
+  ylab="", xlab="Day", xlim=c(2,290))
+lines(meanf(dj2,h=42)$mean, col=4)
+lines(rwf(dj2,h=42)$mean, col=2)
+lines(rwf(dj2,drift=TRUE,h=42)$mean, col=3)
+legend("topleft", lty=1, col=c(4,2,3),
+  legend=c("Mean method","Naive method","Drift method"))
+lines(dj)
+
+dj3 <- window(dj, start=251)
+accuracy(meanf(dj2,h=42), dj3)
+accuracy(rwf(dj2,h=42), dj3)
+accuracy(rwf(dj2,drift=TRUE,h=42), dj3)
+
+# Residual Diagnostics 
+# ei = yi - hat(y)
+
+dj2 <- window(dj, end=250)
+plot(dj2, main="Dow Jones Index (daily ending 15 Jul 94)", 
+  ylab="", xlab="Day")
+res <- residuals(naive(dj2))
+plot(res, main="Residuals from naive method", 
+  ylab="", xlab="Day")
+
+Acf(res, main="ACF of residuals")
+hist(res, nclass="FD", main="Histogram of residuals")
+
+# lag=h and fitdf=K
+Box.test(res, lag=10, fitdf=0)
+# Box-Pierce test
+X-squared = 10.6425, df = 10, p-value = 0.385
+
+Box.test(res,lag=10, fitdf=0, type="Lj")
+
+# Box-Ljung test
+X-squared = 11.0729, df = 10, p-value = 0.3507
+
+Percentage	Multiplier
+50	          0.67
+55	          0.76
+60	          0.84
+65	          0.93
+70	          1.04
+75	          1.15
+80	          1.28
+85	          1.44
+90         	1.64
+95	          1.96
+96	          2.05
+97	          2.17
+98	          2.33
+99             2.58
+
