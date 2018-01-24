@@ -1,0 +1,73 @@
+mydata=read.csv(file.choose())
+myts=as.ts(mydata[,3],deltat=1/12,start=c(2001,1))
+plot(myts)
+newmat=xtabs(Amount~Month+Year, data=mydata)
+newmat[newmat==0]=NA
+
+par(mfrow=c(1,2))
+par(xpd=T, mar=par()$mar+c(0,0,0,5))
+myplot=matplot(newmat, type=c("b"), pch=1,col=1:15,xlim=c(1,12), ylim=c(1200000,3000000),xlab="Month", ylab="Amount")
+legend(locator(1), inset=c(-1,0),legend=2001:2015,col=1:15,pch=1)
+mybox=boxplot(mydata$Amount~mydata$Month, col=1:12,main="Seasonal?",notch=T)
+
+#Training Set and Test Set
+train=ts(myts[1:120],frequency=12) #training set
+test=ts(myts[121:176],frequency=12) #testing set
+t=seq(1,120)
+
+#Simple naive
+myn=naive(train) #naive model
+nf=forecast(myn,12) #forecast
+acc0=accuracy(nf,test[1:12])
+plot(nf)
+nacc=accuracy(nf)  #accuracy for naive
+
+#SMA
+library(TTR)
+mysma=na.omit(SMA(train,12))
+fs=forecast(mysma,12)
+acc1=accuracy(fs,test[1:12])
+plot(fs,main="SMA")
+plot(as.numeric(train)~t,col="black",type="l")
+lines(mysma~t[12:120], col="red")
+
+#WMA
+mywma=na.omit(WMA(train,12))
+fw=forecast(mywma,12)
+acc2=accuracy(fs, test[1:12])
+plot(fw, main="WMA")
+
+#ETS ANN
+mye=ets(train,model="ANN")
+fe=forecast(mye,12)
+acc3<-accuracy(fe,test[1:12])
+plot(fe,main="ANN")
+
+#ETS AAN
+mye2=ets(train,model="AAN")
+fe2=forecast(mye2,12)
+acc4<-accuracy(fe2,test[1:12])
+plot(fe2,main="AAN")
+
+#ETS AAA
+mye3=ets(train,model="AAA")
+fe3=forecast(mye3,12)
+acc5<-accuracy(fe3,test[1:12])
+plot(fe3,main="AAN")
+
+aic=list(c(mye$aic,mye2$aic,mye3$aic))
+aicc=list(c(mye$aicc,mye2$aicc,mye3$aicc))
+aic
+aicc
+
+acc1
+acc2
+acc3
+acc4
+acc5
+
+
+
+
+
+
