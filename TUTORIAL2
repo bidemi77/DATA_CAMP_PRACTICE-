@@ -1,0 +1,137 @@
+---
+title: "Week 2 Predict 413"
+author: "Doc Larry"
+date: "January 15,2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(fpp)
+require(forecast)
+require(psych)
+require(ResourceSelection)
+```
+
+## R Markdown
+
+We will continue to use the Australian beer sales example from last week.
+##Australian Beer Production Example
+```{r beer}
+is.ts(ausbeer) # is this a time series?  If it's not true, define it that way.
+ausbeer  #look at the structure
+plot(ausbeer) #plot the structure
+newaus=ts(ausbeer[145:211], start=c(1992,1), frequency=4) #cut the time series and define as a new ts
+#now, we can fit a secular trend with the whole data. Often, we piecewise fit the trend.
+t=seq(145:211)
+plot(as.vector(newaus)~t, main="Example of Secular Trend", xlab="Month", ylab="Beer Sales", type="l")
+abline(lm(newaus~t), col="red")
+
+```
+
+## Seasonality.
+
+Now, we will look at the seasonality.  First, I like to look at the boxplots by the season.  It's an easy evaluation.
+
+```{r}
+q=rep(c("Q1","Q2","Q3","Q4"), 53)
+q=q[1:211]
+boxplot(ausbeer~q, notch=T, col=c("dark blue", "dark red", "yellow", "dark green"), ylab="Sales",main="Seasonal Box Plots, Aussie Beer Sales")
+
+```
+Now, we can run trend and seasonality analysis simultaneously. 
+
+```{r}
+seasonplot(newaus, col=seq(1:100), main="Example of a Seasonplot",year.labels=TRUE)
+mydec=decompose(newaus, type="additive")
+plot(mydec)
+mydec$figure
+```
+
+Now, lets' take a look at a few other data sets.  Let's look at Melbourne to Sydney.
+
+There was a period in 1989 when no passengers were carried --- this was due to an industrial dispute.
+
+There was a period of reduced load in 1992. This was due to a trial in which some economy class seats were replaced by business class seats.
+
+A large increase in passenger load occurred in the second half of 1991.
+
+There are some large dips in load around the start of each year. These are due to holiday effects.
+
+There is a long-term fluctuation in the level of the series which increases during 1987, decreases in 1989 and increases again through 1990 and 1991.
+
+There are some periods of missing observations as well (take a look at the gaps.)
+
+
+```{r}
+is.ts(melsyd)
+plot(melsyd[,"Economy.Class"],
+main="Economy class passengers: Melbourne-Sydney",
+xlab="Year",ylab="Thousands")
+```
+Let's go ahead and look at seasonality and trend.
+```{r}
+seasonplot(melsyd, col=seq(1:52),season.labels=TRUE)
+```
+Now let's look at another dataset that has to do with diabetes (a10).
+```{r}
+is.ts(a10)
+plot(a10, ylab="$ million", xlab="Year", main="Antidiabetic drug sales")
+
+```
+Here is an example where the seasonality might be partially masked by the trend.  We can detrend the data and see the seasonality much easier. 
+```{r}
+newt=seq(1:length(a10))
+mylm2=lm(as.vector(a10)~newt)
+newts=ts(mylm2$residuals, start=c(1991,7), frequency=12)
+#if you need to know the subcomponents of a variable such as mylm2,
+#use ls(mylm2)
+mymo=factor(rep(c(7,8,9,10,11,12,1,2,3,4,5,6),17))
+boxplot(newts~mymo, notch=TRUE, col=seq(1:100), xlab="Month",ylab="Detrended Anti-Diabetic Sales")
+
+```
+We can also look at the piecewise trends, seasonality, and error terms using decomposition in R as well as seasonplots.
+
+```{r}
+mydec2=decompose(a10,type="additive")
+plot(mydec2)
+seasonplot(a10, col=seq(1:100), year.labels=TRUE)
+
+```
+FYI-if you add the seasonality, trend, and error in an additive decomposition, it returns the original data.
+
+When we have data that are on top of each, sometimes it helps using the "jitter" function.
+
+```{r}
+plot(jitter(fuel[,5]), jitter(fuel[,8]), xlab="City mpg", ylab="Carbon footprint")
+```
+Investigating the relationship among quantitative variables is easily done through a scatterplot matrix.  I prefer the kdepairs function in ResourceSelection.
+
+```{r}
+pairs(fuel[,-c(1:2,4,7)], pch=19)
+library(ResourceSelection)
+kdepairs(fuel[,-c(1:2,4,7)], pch=19)
+```
+
+Sometimes, it is just easier to write functions to support some basic functions.  Many are written (e.g., "describe").  But here is a quick example of a function.
+
+```{r}
+myfun=function(x){
+m=mean(x)
+s=sd(x)
+f=fivenum(x)
+par(mfrow=c(2,1))
+h=hist(x, main="Hist")
+b=boxplot(x, main="Boxplot")
+all=as.list(c(m,s,f))
+names(all)=c("Mean","sd","min","first","median","third","max")
+return(all)
+}
+
+cardata=c(4,4.4,5.9,5.9,6.1,6.1,6.1,6.3,6.3,6.3, rep(6.6,7), rep(6.8,3))
+
+myfun(cardata)
+
+```
