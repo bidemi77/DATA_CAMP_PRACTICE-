@@ -1,0 +1,403 @@
+---
+title: "Time Series and Forecastion:Homework 1"
+author: "Sulaimon,Nurudeen"
+date: "1/28/2018"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+library(fma)
+library(fpp)
+library(knitr)
+opts_chunk$set(echo = TRUE)
+```
+
+# Question 2.8 (1A)
+
+```{r}
+head(dole)
+is.ts(dole)
+dole.ts <- window(dole, start=c(1956,1), end=c(1992,7),deltat=1/12)
+log_dole.ts = log(dole.ts)
+plot(log_dole.ts, main="Australians on Umemployed Benefits",
+                  ylab="", xlab="YEARS")
+```
+
+##  Question 2.8 (1B)
+
+```{r}
+par(mar=c(1,1,1,1))
+head(usdeaths)
+is.ts(usdeaths)
+usdeaths.ts <- window(usdeaths, start=c(1973,1), end=c(1978,12), deltat=1/12) 
+log_usdeaths.ts = log(usdeaths.ts)
+plot(log_usdeaths.ts,main="U.S Accidental Deaths(Jan 1956-Jul 1992")
+```
+
+## Question 2.8 (1C)
+
+```{r}
+# Quarterly production of bricks (in millions of units) at 
+# Portland, Australia (March 1956–September 1994).
+bricksq.ts <- window(bricksq, start=1956, end=1994,frequency=4)
+head(bricksq.ts)
+plot(bricksq.ts,main="Quarterly Australia Clay Brick Production",
+     xlab="YEARS", ylab="")
+```
+
+
+
+# Question 2.8 (2A)
+## Produce Time Series of dowjones Dataset
+
+```{r}
+head(dowjones)
+dowjones_tsplot <- plot.ts(dowjones, main="Dow-Jones Index 28 Aug-18 Dec 1972", ylab="Price")
+```
+
+# Question 2.8 (2B) 
+## Forecast With Random Walk Forecast Using Drift Method and Plot
+
+```{r}
+rwf_dowjones <- rwf(dowjones, h=5, drift=TRUE,level=c(80,99))
+head(rwf_dowjones)
+plot(rwf_dowjones)
+```
+
+
+/ new page
+# Question 2.8 (2C)
+
+## Missing
+
+
+# Question 2.8 (2D)
+
+```{r}
+rwf_dowjones = rwf(dowjones, h=10, drift=TRUE,level=c(80,99))
+naive_dowjones = naive(dowjones, h=10, level=c(80,95))
+mean_dowjones = meanf(dowjones,h=10,level=c(80,95))
+snaive_dowjones = snaive(dowjones,h=10,level=c(80,95))
+```
+
+# Check
+## **Given the variation and bias metrics, random walk forecast is considered as the best.**
+```{r}
+accu1 = accuracy(rwf_dowjones)
+accu2 = accuracy(naive_dowjones)
+accu3 = accuracy(mean_dowjones)
+accu4 = accuracy(snaive_dowjones)
+accu1
+accu2
+accu3
+accu4
+```
+
+# Question 2.8  (3A)
+
+```{r}
+head(ibmclose)
+plot(ibmclose, main="Closing IBM Stock Price")
+tsdisplay(ibmclose)
+```
+
+# Question 2.8 (3B)
+# Split to Train=300 observations and Test = 69 observations.
+
+```{r}
+ibmclose_train <- window(ibmclose, start=1, end=300)
+head(ibmclose_train)
+
+ibmclose_test <- window(ibmclose, start=301, end=369)
+head(ibmclose_test)
+
+
+```
+
+
+# Try Benchmark methods to forecast Training Set and Compare on Test Set.
+## Which one performs better?
+
+# Benchmark Methods 
+```{r}
+rwf_forecast.ibm <- rwf(ibmclose_train, h=5,level=c(80,99))
+rwf_forecast.ibm
+
+mean_forecast.ibm <- meanf(ibmclose_train,h=5, level=c(80,99))
+mean_forecast.ibm
+
+naive_forecast.ibm<- naive(ibmclose_train, h=5, level=c(80,99))
+naive_forecast.ibm
+
+snaive_forecast.ibm <- snaive(ibmclose_train, h=5, level=c(80,99))
+snaive_forecast.ibm
+```
+
+# ** None of the Benchmark methods outperforms the Naive Method. Naive Forecast performs poorly on bias metrics. In this case, Naive forecast seems like the best to choose and to put it more appropriately, Naive forecast is the best out of the worst.**
+
+# Compare Train Set on a Test Set.
+```{r}
+pred_test1 <- accuracy(rwf(ibmclose_train,h=5,drift=TRUE), ibmclose_test)
+pred_test1
+
+pred_test2 <- accuracy(meanf(ibmclose_train,h=5), ibmclose_test)
+pred_test2
+
+pred_test3 <- accuracy(naive(ibmclose_train,h=5), ibmclose_test)
+pred_test3
+
+pred_test4 <- accuracy(snaive(ibmclose_train,h=5), ibmclose_test)
+pred_test4
+```
+
+# Question 2.8 (4A)
+## Produce plot of hsales 
+
+```{r}
+head(hsales)
+plot(hsales, xlab = "Time", ylab = "Sales", main = "")
+```
+
+# Question 2.8 (4B)
+## Split hsales dataset into Training and Test Set
+```{r}
+hsales_training = window(hsales, start=c(1973,1),end = c(1993,12))
+hsales_test = window(hsales, start = c(1994,1), end=c(1995,11))
+```
+
+# QUestion 2.8 (4C)
+# Try Benchmark methods to forecast Training Set&Compare on Test Set
+## Which one performs better?
+# ** Base on the bias metrics and variation metrics, snaive forecast is the best out of all the forecasts because it has the lowest ME,MPE,RMSE, MAE,and MAPE. **
+
+# Benchmark Methods
+```{r}
+rwf_forecast.hsales = rwf(hsales_training, h = 10)$mean
+rwfdrift_forecast.hsales = rwf(hsales_training, drift = TRUE, h = 10)$mean
+meanf_forecast.hsales = meanf(hsales_training, h = 10)$mean
+naive_forecast.hsales = naive(hsales_training, h=10)
+snaive_forecast.hsales = snaive(hsales_training, h = 10)$mean
+```
+
+# Compare Train Set on a Test Set.
+```{r}
+pred1 = accuracy(rwf_forecast.hsales, hsales_test)
+pred2 = accuracy(rwfdrift_forecast.hsales, hsales_test)
+pred3 = accuracy(meanf_forecast.hsales, hsales_test)
+pred4 = accuracy(naive_forecast.hsales, hsales_test)
+pred5 = accuracy(snaive_forecast.hsales,hsales_test)
+pred1
+pred2
+pred3
+pred4
+pred5
+```
+
+# Question 4.10 (1A)
+# Plot econsumption dataset and find regression model for Mwh with Temperature 
+head(econsumption)
+
+```{r}
+plot(Mwh ~ temp, data=econsumption)
+fit  <- lm(Mwh ~ temp, data=econsumption)
+fit
+```
+# ** There is negative relationship between electricity usage and temperature because electricity usage is not affected by temperature such that an increase in electricity usage does not necessarily mean an increase in temperature. In this case, we could say that there is no correlation between electricity usage and temperature ** 
+
+# Question 4.10 (1B)
+# Residuals of Econsumption
+```{r}
+res <- residuals(fit)
+plot(res)
+```
+
+# ** Model Adequacy: The model is adequate base on the residual plot because the regression model is able to explain the relationship between consumption pattern and temperature.**
+
+# ** Outlier: Visual inspection of the residual plot indicates that there is at least one outlier at the top of the graph.**
+
+# ** There is no correlation in the error term which indicate that the model was able to explain the target variable with its prediction **
+# ** There is an outlier on the residuals **
+
+# Question 4:10 (1C)
+## Electricity consumption on days when maximum temperature 10∘10∘ and a day with maximum temperature 35∘35∘. Do you believe these predictions?
+```{r}
+forecast1 <- forecast(fit, newdata=data.frame(temp=c(10,35)))
+accuracy(forecast1)
+```
+
+# ** There is no strong basis to believe the prediction. Despite the fact that it performs better than a naive model, we cannot determine how a  model performs without testing this result on a test dataset.**
+
+# Question 4:10 (1D)
+#  Prediction Interval
+
+```{r}
+predict(fit,newdata=data.frame(temp=c(10,35), interval="predict"))
+```
+
+# Question 4.10 (2A)
+# Update 'Olympic' Dataset To include five winning records not in the 
+initial Dataset
+```{r}
+olympic = rbind(olympic, data.frame(Year = c(2000, 2004, 2008, 2012,2016),time = c(43.16, 43.50, 43.17, 42.76,42.40)))
+```
+
+
+```{r}
+tail(olympic)
+summary(olympic)
+
+```
+
+# Question 4.10 (2B)
+# Plot Winning Time Against Year. What are the main features?
+```{r}
+plot(time ~ Year,data=olympic,main="Scatter plot of Olympic Winnings")
+```
+# ** There is an observation that is an outlier in the dataset. There seems to be relationship between winning time and year in recent time from 2000 but later years haa a lot of dispersion in the data. **
+
+# Question 4.10 (2C)
+# Plot Regression Model with Time Against Year
+```{r}
+fit = lm(time ~ Year, data = olympic)
+fit
+plot(time ~ Year, data = olympic)
+#abline(a = fit$coefficients[1], b = fit$coefficients[2], col = "red")
+```
+
+
+## Question 4.10 (2C)
+```{r}
+# Winning Rate of Decrease
+fit$coefficients[2]
+fit$coefficients[1]
+```
+
+# Question 4.10  (2D) 
+## Plot of residual against year
+```{r}
+res <- resid(fit)
+plot(res ~ Year, data=olympic, main="Residual Versus Year")
+abline(h = 0, col = "red")
+```
+
+# Question 4.10 3(f)
+
+#trainingSet = olympic[1:23,]
+#testSet = olympic[24:27,]
+#fitOverTheTrainingSet = lm(time ~ Year, data = trainingSet)
+#plot(forecast(fitOverTheTrainingSet, newdata = testSet[,"Year"]))
+#lines(time ~ Year, data = testSet, col = "red", type = "p")
+
+# QUESTION 6.7 (1)
+# Not Completed 
+
+
+
+
+# QUESTION 6.7 (2A)
+```{r}
+head(plastics)
+is.ts(plastics)
+```
+
+# Plot the graph of plastics 
+```{r}
+plot(plastics, ylab = "Sales of product A")
+```
+
+# 6.7 (2b)
+# Use Classical Multiplicative Decomposition on Plastics Dataset.
+```{r}
+fit <- decompose(plastics, type="multiplicative")
+plot(fit)
+```
+
+# 6.7 (2C)
+# Does the result supports grapical intepretation of (2A)
+# ** The result of decomposing the dataset(plastics) supports our previous plot of plastics because both confirms the seasonality of the data. **
+
+# 6.7 (2D)
+Compute and plot the seasonally adjusted data.
+```{r}
+seasAdj <- seasadj(fit)
+seasAdj
+plot(seasAdj, main = "Seasonally adjusted data",ylab="Sales of product figure",
+                      xlab="Time in months")
+```
+
+
+# 6.7 (2E)
+#  What is the effect of outlier?
+# Add Outlier in the middle of Observation.
+# ** The outlier has significant effect on the shape of the final plot
+as there is a sharp uptrust at the middle of the graph.**
+
+
+# Add Outlier in the middle of Observation. 
+```{r}
+plastics2=plastics 
+plastics2[30] = plastics[30] + 500
+plastics2[30]
+fit1 = decompose(plastics2, type="multiplicative")
+plot(fit1)
+seasAdj <- seasadj(fit1)
+plot(seasAdj, main="Seasonally Adjusted Data with Middle Outlier",
+     ylab="Sales of Product Figure", xlab="Time")
+```
+
+
+# 6.7 (2f)
+# Add Outlier to the End  of Observation.
+```{r}
+plastics3 = plastics
+plastics3[54] = plastics2[54] + 500
+plastics3[54]
+fit2 <- decompose(plastics3, type="multiplicative")
+plot(fit2)
+seasAdj <- seasadj(fit)
+plot(seasAdj, main = "Seasonally Adjusted Data with Extreme Outlier",
+     ylab="Sales of Product Figure", xlab="Time")
+```
+
+# Does it make any difference if the outlier is near the end rather 
+# than in the middle of the time series?
+
+# ** The effect of adding outlier to the end of the dataset was less drastic than when the outlier was added to the middle of the dataset.**
+
+# 6.7 (2G) 
+# Forecast Seasonally adjusted Data using Randow Walk with Drift
+```{r}
+rwf_Drift= rwf(seasAdj, drift=TRUE, h=12, level=c(80,95))
+rwf_Drift
+plot(rwf_Drift,main="Random Walk on Seasonally Adjusted Data")
+```
+
+# 6.7 (2G)
+# Reseasonalise the results to give forecasts on the original scale.
+```{r}
+plot(rwf_Drift, ylim = c(500, 2200))
+lines(rwf_Drift$mean*fit$figure, col = "green", lwd = 2)
+lines(rwf_Drift$upper[,2]*fit$figure, col="blue")
+lines(rwf_Drift$lower[,2]*fit$figure, col="blue")
+lines(plastics, col = "green", lwd = 2)
+```
+
+# 6.7 (3A)
+# Describe the results of the seasonal adjustment. Pay particular attention to the scales of the graphs in making your interpretation.
+# ** (i) The behavior of the seasonal component is different during recession period than other period. The recession perhaps resulted in a change in behavior that is different frokm the norm.**
+
+# ** (ii) After the Australia Civilian Labour Force Data is seasonally adjusted, there is a noticeable upward trend on the observed data.**
+
+# ** (iii) The seasonal component changes mostly in March with its highest in December and Lowest in January ** 
+
+
+
+# 6.7 (3B)
+Is the recession of 1991/1992 visible in the estimated components?
+
+# ** Yes. The observed data indicated a reduction in the number of Civilian Labour Force during 1991/1992 but the downward movement is not as sharp as it will be expected in a recession. It could be that only few people were laid off as a result of the recession. However, the error component(remainder) showed a downward spike between 1991/1992.**
+
