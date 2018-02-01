@@ -1,0 +1,50 @@
+library(stringr)
+library(forecast)
+library(fma)
+
+# Load Measles Data From Jan. 1939 To June 1972
+Measles_Data <-read.csv("/Users/nex/Desktop/monthly-reported-number-of-cases.csv")
+
+# Examine Measles Data
+str(Measles_Data)
+tail(Measles_Data)
+summary(Measles_Data)
+
+# Separate Column "YR_MONTH" into "YR" and "MONTH"
+separate_measles <- separate(Measles_Data,YR_MONTH, into=c("YR", "MONTH"),
+                          sep="-")
+tail(separate_measles)
+sum(is.na(separate_measles))
+ts.plot(separate_measles, main="Reported Measles Cases in Baltimore,
+        (1939 - 1972)")
+head(separate_measles)
+# Split Data into Train and Test Data.
+ts.Measles_train <- ts(separate_data,start=c(1939,01),end=c(1966,05),deltat=1/12)
+ts.Measles_test <- ts(separate_data, start=c(1966,06), end=c(1972,06),deltat=1/12)
+tail(ts.Measles_train,n=6)
+tail(ts.Measles_test,n=6)
+
+
+# Plot Time Series Data of Measles Train and Test
+ts.plot(ts.Measles_train,xlab="YEARS", ylab="COUNTS")
+ts.plot(ts.Measles_test,xlab="YEARS", ylab="COUNTS")
+
+# Fit model
+fit.ets <- ets(ts.Measles_train[,3]) 
+fit.arima <- auto.arima(ts.Measles_train[,3])
+fit.ets
+fit.arima
+plot(fit.ets)
+plot(fit.arima)
+
+# Create forecasts
+forecast.Measles <- forecast(fit.ets, h=6)
+for_arima.Measles <- forecast(fit.arima, h=6)
+forecast.Measles
+for_arima.Measles
+
+# Evaluate acuracy
+ets_accu <- accuracy(forecast.Measles, ts.Measles_test[1:6])
+arima_accu <- accuracy(for_arima.Measles, ts.Measles_test[1:6])
+ets_accu
+arima_accu
