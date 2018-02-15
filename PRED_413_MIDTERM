@@ -1,0 +1,232 @@
+---
+title: "PRED413_MIDTERM"
+author: "Sulaimon,Nurudeen"
+date: "2/11/2018"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Package
+```{r}
+library(VIM)
+library(tidyverse)
+library(tibble)
+library(fpp)
+library(dplyr)
+library(tidyr)
+library(MLmetrics)
+library(ggplot2)
+library(mice)
+library(fpp)
+```
+
+## LOAD DATASET
+```{r pressure, echo=TRUE}
+air_reform <-read.csv("/Users/nex/Desktop/KAGGLE_DATA/air_visit_data_reformatted .csv")
+date_info <- read.csv("/Users/nex/Desktop/KAGGLE_DATA/date_info..csv")
+```
+
+## CHECK THE STRUCTURE OF THE DATA 
+```{r}
+str(air_reform)
+str(date_info)
+
+head(air_reform,n=3)
+head(date_info,n=3)
+```
+
+## CHECK THE MISSING VALUES 
+```{r}
+sum(is.na(air_reform))
+```
+
+## MISSING PATTERN
+```{r}
+mp.air_reform <-md.pattern(air_reform[,3:4])
+mp.air_reform
+```
+
+## Create a Visalizing of Proportion and Number of Missing Data.
+```{r}
+prop.air_reform <-aggr(air_reform[1:152][[4]],prop=FALSE,numbers=TRUE)
+num.air_reform <- aggr(air_reform[1:152][[4]],prop=TRUE, numbers=FALSE)
+```
+
+## Create Margin Plot of Missing Data
+```{r}
+marginplot(air_reform[,c(4,5)])
+```
+
+## CONVERT REFORMATTED DATA 
+```{r}
+newdata <-  as.ts(air_reform[,-c(1,2,3)], start=c(2016,1,1), frequency=365)
+```
+
+
+## PERFORM SILLY IMPUTATION
+```{r}
+for (i in 1:ncol(newdata)){
+  newdata[is.na(newdata[,i]),i] <- mean(newdata[,i],na.rm=TRUE)
+}
+```
+
+## Check RESULT OF SILLY  IMPUTATION
+```{r}
+sum(is.na(newdata))
+```
+
+# FORECAST WITH MEAN
+```{r}
+fmean <- meanf(newdata[,1], h=39)
+fmean$aic
+fmean$bic
+plot(fmean)
+accuracy(fmean)[,c(2,3,5)]
+```
+**RMSE: 8.635684, MAE: 4.63, MAPE: 41.16**
+
+##  NAIVE FORECAST
+```{r}
+fnaive <- naive(newdata[,1], h=39)
+fnaive$aic
+fnaive$bic
+plot(fnaive)
+accuracy(fnaive)[,c(2,3,5)]
+```
+**RMSE:12.49, MAE:7.38, MAPE:53.47**
+
+## SEASONAL FORECAST
+```{r}
+fseas <- snaive(newdata[,1],h=39)
+fseas$aic
+fseas$bic
+plot(fseas,main="SEASONAL NAIVE")
+accuracy(fseas)[,c(2,3,5)]
+```
+**RMSE:12.49, MAE:7.38, MAPE:53.47**
+
+
+## RANDOM WALK FORECAST WITH DRIFT 
+```{r}
+frand <- rwf(newdata[,1],h=39, drift=TRUE)
+plot(frand, main="RANDOM WALK")
+accuracy(frand)[,c(2,3,5)]
+```
+**RMSE:12.49, MAE:7.38, MAPE:53.47**
+
+## Simple Exponential Smoothing with "Optimal"
+```{r}
+fses_opt <- ses(newdata[,1], initial="optimal", h=39)
+plot(fses_opt)
+accuracy(fses_opt)[,c(2,3,5)]
+```
+**RMSE:8.64, MAE:4.72, MAPE:40.44**
+
+
+## SES (No default Alpha)
+```{r}
+fses <- ses(newdata[,1], initial="simple", h=39)
+plot(fses)
+accuracy(fses)[,c(2,3,5)]
+```
+**RMSE:8.64, MAE:4.63, MAPE:41.16**
+
+## SES (Alpha=0.2)
+```{r}
+ses02 <- ses(newdata[,1], initial="simple", h=39, alpha=0.2)
+plot(ses02)
+accuracy(ses02)[,c(2,3,5)]
+```
+**RMSE:9.16, MAE:5.31, MAPE:44.24**
+
+## Simple ETS (Model="M,A,N")
+```{r}
+fets <- forecast(ets(newdata[,1]), model="MAN", h=39)
+plot(fets)
+accuracy(fets)[,c(2,3,5)]                  
+```
+**RMSE:8.81, MAE:5.83, MAPE:46.65**
+
+## Simple ETS (Model="A,A,N")
+```{r}
+fets01 <- forecast(ets(newdata[,1]), model="AAN", h=39)
+plot(fets01)
+accuracy(fets01)[,c(2,3,5)]  
+```
+**RMSE:8.81, MAE:5.83, MAPE:46.65**
+
+## Simple ETS (Model="A,A,A")
+```{r}
+fets02 <- forecast(ets(newdata[,1]), model="AAA", h=39)
+plot(fets02)
+accuracy(fets02)[,c(2,3,5)]
+```
+**RMSE:8.808024, MAE:5.83, MAPE:46.65**
+
+## Auto Arima 
+```{r}
+arima <- auto.arima(newdata[,1],seasonal=FALSE)
+for_arima <- forecast(arima, h=39)
+accuracy(for_arima)[,c(2,3,5)]
+```
+**RMSE:8.63, MAE:4.77, MAPE:41.12**
+
+## Arima White Noise (0,0,0)
+```{r}
+arima01 <- Arima(newdata[,1], order=c(0,0,0))
+arima01$aic
+arima01$bic
+for_arima01 <- forecast(arima01,h=39)
+accuracy(for_arima01)[,c(2,3,5)]
+```
+**RMSE:8.64, MAE:4.63, MAPE:41.15**
+
+
+## Arima White Noise (1,0,0)
+```{r}
+arima02 <- Arima(newdata[,1], order=c(1,0,0))
+for_arima02 <- forecast(arima02, h=39)
+accuracy(for_arima02)[,c(2,3,5)]
+```
+**RMSE:8.63, MAE:4.69, MAPE:41.29**
+
+## Holt's Linear Trend Method(Alpha=0.1 and Beta=0.2)
+```{r}
+for_holt <- holt(newdata[,1], alpha=0.1, beta=0.2, initial="simple",h=39)
+accuracy(for_holt)[,c(2,3,5)]
+```
+#RMSE:9.18 MAE:5.37, MAPE:43.89
+
+## Holt's Linear Trend Method (ALpha=0.2, Beta=0.1)
+```{r}
+for_holt01 <- holt(newdata[,1], alpha=0.2, beta=0.1, initial="simple", h=39)
+accuracy(for_holt01)[,c(2,3,5)]
+```
+**RMSE:9.37, MAE:5.49, MAPE:45.35**
+
+## Holt's Linear Trend Method (ALpha=0.2, Beta=0.2)
+```{r}
+for_holt02 <- holt(newdata[,1], alpha=0.2, beta=0.2, initial="simple", h=39)
+accuracy(for_holt02)[,c(2,3,5)]
+```
+**RMSE:9.58, MAE:5.63, MAPE:46.39**
+           
+
+## SIMPLE FORECASTING
+```{r}
+# for (i in 2:829){
+#  myf=round(forecast(Arima(newdata[,i]), 39)$mean,0)
+#  Arima02=cbind(Arima02, myf)}
+#colnames(Arima02=colnames(newdata)
+```
+
+#write.csv(Arima02,file="Arima02.csv")
+
+
