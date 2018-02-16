@@ -1,0 +1,200 @@
+# Week1 
+# Also, using the first letter of your last name, pick a stock. Download the daily adjusted closing prices from Yahoo Finance or 
+# another source for the last two years.  Using this data (be sure to sort in ascending order), 
+# use regression techniques to forecast the next month of daily adjusted closing prices.
+
+install.packages("forecast")
+library(forecast)
+rain <- scan("http://robjhyndman.com/tsdldata/hurst/precip1.dat",skip=1)
+rainseries <- ts(rain,start=c(1813))
+plot.ts(rainseries)
+rainseriesforecasts <- HoltWinters(rainseries, beta=FALSE, gamma = FALSE)
+rainseriesforecasts$fitted
+plot(rainseriesforecasts)
+# Old
+# rainseriesforecasts2 <- forecast.HoltWinters(rainseriesforecasts, h=8)
+# New
+rainseriesforecasts2 <- forecast(rainseriesforecasts, h=8)
+# Old
+# plot.forecast(rainseriesforecasts2)
+# New
+plot(rainseriesforecasts2)
+
+Week 2
+# Go to Data Market (https://datamarket.com/data/list/?q=cat:ecc%20provider:tsdl (Links to an external site.)Links to an external site.)  
+# Pick a time series and conduct additive and multiplicative decomposition.  Which one worked better? 
+# How can you tell?  How would you use the results in forecasting (or would you?)
+
+library("forecast")
+
+process_series <- function(time_series, type){
+ time_series_train <- window(time_series, start=1970, end=c(1992, 5))
+ time_series_test <- window(time_series, start=c(1992, 6), end=c(1995, 8))
+ fit <- stl(time_series_train, s.window=7)
+ 
+ plot(time_series_train, col="gray",
+ main="Exchange Rate Trend vs Actual",
+ ylab="Month/Year", xlab="")
+ lines(fit$time.series[,2],col="red",ylab="Trend")
+ plot(fit, main = paste("STL", type, "Decomposition"))
+ monthplot(fit$time.series[,"seasonal"], main="Monthly Exchange Rate Levels", ylab="Seasonal")
+ 
+ plot(time_series_train, col="grey",
+ main=paste("Exchange Rate", type, "Model Seasonally Adjusted"),
+ xlab="", ylab="Exchange Rate Level")
+ lines(seasadj(fit),col="red",ylab="Seasonally adjusted")
+ # fcast <- forecast(fit, method="naive") 
+ fcast <- forecast(fit, h=length(time_series_test)) 
+ plot(fcast, ylab="Future Exchange Rate Direction", main=paste(type, "Forecast"))
+ lines(time_series, col="red",ylab="Actual")
+ print(accuracy(fcast, time_series_test))
+}
+
+# Trade Weighted Exchange Index: https://en.wikipedia.org/wiki/Trade-weighted_effective_exchange_rate_index
+exchange_rate <- read.csv("data/exchange-rate-twi-may-1970-aug-1.csv")
+exchange_rate$ExchangeRate[is.na(exchange_rate$ExchangeRate)] <- 53.09
+boxplot(exchange_rate$ExchangeRate~exchange_rate$Month, notch=T)
+title("Boxplot of Exchange Rate Seasonality")
+
+exchange_series <- ts(exchange_rate$ExchangeRate, deltat = 1/12, start = c(1970, 5))
+additive_forecast <- process_series(exchange_series, "Additive")
+
+
+# Use the log format to approximate multiplicative
+exchange_rate$ExchangeRateLog <- log(exchange_rate$ExchangeRate)
+exchange_series_log <- ts(exchange_rate$ExchangeRateLog, deltat = 1/12, start = c(1970, 5))
+mult_forecast <- process_series(exchange_series_log, "Multiplicative")
+
+
+Week 3
+# Go to Data Market (https://datamarket.com/data/list/?q=cat:ecc%20provider:tsdl (Links to an external site.)Links to an external site.)  
+# Pick a time series of interest to you.  Using this data (be sure to sort in ascending order), build two or three ETS models. 
+# Which performs better?  What explanation might explain that?
+
+library("forecast")
+library(dplyr)
+library(tidyr)
+sales_df <- read.csv("data/advertising-and-sales-data-36-co.csv", stringsAsFactors=FALSE)
+sales_updated <- separate(sales_df, col='Month', into = c('year', 'month' ), sep='-')
+sales_series <- ts(sales_df$Sales, deltat = 1/12, start = c(2001, 1))
+plot(sales_series, main="Monthly Sales")
+fit_stl <- stl(sales_series, s.window=7)
+plot(sales_series, col="gray",
+ main="Sales Trend vs Actual",
+ ylab="Month/Year", xlab="")
+lines(fit_stl$time.series[,2],col="red",ylab="Trend")
+plot(fit_stl, main = "STL Decomposition Full Data Set")
+boxplot(sales_updated$Sales~sales_updated$month, notch=T)
+title("Boxplot of Sales Seasonality")
+#train / test split
+train = window(sales_series, start=c(2001, 1), end=c(2002, 12))
+test = window(sales_series, start=c(2003, 1), end=c(2003, 12))
+
+fit_ets <- ets(train, model="AAA")
+fit_ets
+fcast_ets_aaa <- forecast(fit_ets, h=12)
+print("ETS AAA Accuracy")
+accuracy(fcast_ets_aaa, test)
+
+fit_ets_mmm <- ets(train, model="MMM")
+plot(fit_ets_mmm)
+fit_ets_mmm
+fcast_ets_mmm <- forecast(fit_ets_mmm, h=12)
+print("ETS MMM Accuracy")
+accuracy(fcast_ets_mmm, test)
+
+fit_ets_full_selection <- ets(train, "ZZZ")
+fit_ets_full_selection
+fcast_ets_full_selection <- forecast(fit_ets_full_selection, h=12)
+print("ETS Full Selection")
+accuracy(fcast_ets_full_selection, test)
+
+Week 4
+# Go to Data Market (https://datamarket.com/data/list/?q=cat:ecc%20provider:tsdl (Links to an external site.)
+# Links to an external site.)  Pick a time series of interest to you.  Build an auto.arima model as well as an ETS model.  
+# Which performed better?  Now hold out 6 months of data for a test set and try to forecast using the ETS and the auto.arima.
+# Which performs better on the hold-out set?
+
+library("forecast")
+library("fpp")
+library(dplyr)
+library(tidyr)
+sales_df <- read.csv("data/advertising-and-sales-data-36-co.csv", stringsAsFactors=FALSE)
+
+sales_df$MonthYear <- sales_df$Month
+sales_updated <- separate(sales_df, col='Month', into = c('year', 'month' ), sep='-')
+
+sales_series <- ts(sales_df$Sales, deltat = 1/12, start = c(2001, 1))
+plot(sales_series, main="Sales Data")
+
+fit_arima <- auto.arima(sales_series)
+summary(fit_arima)
+fit_ets <- ets(sales_series)
+summary(fit_ets)
+
+train = window(sales_series, start=c(2001, 1), end=c(2003, 6))
+test = window(sales_series, start=c(2003, 7), end=c(2003, 12))
+
+acf(train)
+
+fit_arima_train <- auto.arima(train)
+fit_arima_train
+fcast_arima <- forecast(fit_arima_train, h=6)
+print("Arima Test Accuracy")
+arima_accuracy <- accuracy(fcast_arima, test)
+arima_accuracy
+
+fit_ets_train <- ets(train)
+fit_ets_train
+fcast_ets <- forecast(fit_ets_train, h=6)
+print("ETS Test Accuracy")
+ets_accuracy <- accuracy(fcast_ets, test)
+ets_accuracy
+
+print("Combined forecast")
+forecast_df <- data.frame(fcast_arima=as.matrix(fcast_arima$mean), fcast_ets=as.matrix(fcast_ets$mean), actual=as.matrix(test))
+forecast_df$avg_forecast <- (forecast_df$fcast_arima * 2 + forecast_df$fcast_ets) / 3
+forecast_df$avg_diffs <-forecast_df$avg_forecast - forecast_df$actual
+forecast_df
+print(paste("ME", round(mean(forecast_df$avg_diffs),2)))
+print(paste("RMSE", round(sqrt(mean(forecast_df$avg_diffs^2)),2)))
+print(paste("MAE", round(mean(abs(forecast_df$avg_diffs)),2)))
+
+
+Week 6
+# Download 5-years of historical daily data from any stock of your choosing.  Finance.Yahoo.Com is a good place to start.  
+# Forecast the daily adjusted closing price of your stock using time series components and at least one external regressor (e.g., transaction volume at t-1).  
+
+
+library("forecast")
+library(dplyr)
+library(tidyr)
+sales_df <- read.csv("data/advertising-and-sales-data-36-co.csv", stringsAsFactors=FALSE)
+
+process_model <- function(fit, message){
+   forecast_with_ads <- forecast(fit, h = 12, xreg = sales_test$Advertising)
+   print(paste("Forecast with", message))
+   print(accuracy(forecast_with_ads, sales_test_ts))
+ 
+}
+
+# Train/test split
+sales_train <- head(sales_updated, 24)
+sales_test <- tail(sales_updated, 12)
+sales_train_ts <- ts(sales_train$Sales, deltat = 1/12, start = c(2001, 1))
+sales_test_ts <- ts(sales_test$Sales, deltat = 1/12, start = c(2003, 1))
+
+fit_no_ads <- auto.arima(sales_train_ts)
+print("Fit with sales only")
+print(fit_no_ads)
+forecast_no_ads <- forecast(fit_no_ads, h = 12)
+print("Fit with sales only")
+print(accuracy(forecast_no_ads, sales_test_ts))
+fit_with_ads <- auto.arima(sales_train_ts, xreg = sales_train$Advertising)
+process_model(fit_with_ads, "Auto.arima with ads")
+fit_with_ad_lagged <- arima(sales_train_ts, xreg = sales_train$Advertising, order=c(1,0,0))
+process_model(fit_with_ad_lagged, "Auto.arima with ads lagged")
+process_model(arima(sales_train_ts, xreg = sales_train$Advertising, order=c(1,1,0)), "Auto.arima with ads lagged and differenced")
+process_model(arima(sales_train_ts, xreg = sales_train$Advertising, order=c(1,1,1)), "Auto.arima with ads lagged, differenced, moving average")
+process_model(arima(sales_train_ts, xreg = sales_train$Advertising, order=c(2,1,0)), "Auto.arima with ads lagged twice and differenced")
+process_model(arima(sales_train_ts, xreg = sales_train$Advertising, order=c(2,1,0)), "Auto.arima with ads lagged twice and differenced twice")
