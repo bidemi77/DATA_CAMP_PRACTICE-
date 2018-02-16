@@ -1,0 +1,54 @@
+library(forecast)
+
+# LOAD DATASET
+DLTR <- read.csv("/Users/nex/Desktop/DLTR.csv")
+head(DLTR)
+tail(DLTR)
+names(DLTR)
+str(DLTR)
+
+plot.ts(DLTR[,6:7], main="Dollar Tree Stock Price")
+
+# Print DLTR Columns: Adj.Close and Volume 
+DLTR_Adj.Close <- DLTR$Adj.Close
+DLTR_Adj.Close
+DLTR_Volume <- DLTR$Volume
+DLTR_Volume
+
+# Create a Time Series Train and Test Data of DLTR
+is.ts(DLTR)
+ts.DLTR_Train <- ts(DLTR, start=c(2013,2),end=c(2017,1),deltat=1/12)
+head(ts.DLTR_Train,5)
+ts.DLTR_Test <- ts(DLTR, start=c(2017,2), deltat=1/12)
+head(ts.DLTR_Test,5)
+
+# Fit auto.arima
+fit <- auto.arima(ts.DLTR_Train[,6])
+
+for_arima <- forecast(fit, h=12)
+plot(for_arima)
+accu1 <- accuracy(for_arima, ts.DLTR_Test[1:12])
+accu1[2:3]
+
+# Fit Adj Close With External Regressor Volume minus 1
+fit2 <- Arima(ts.DLTR_Train[,6], xreg=ts.DLTR_Train[,7],order=c(1,1,0))
+
+for_fit2 <- forecast(fit2,xreg=DLTR$Volume,h=1)
+plot(for_fit2)
+
+# Check For Arima Errors
+Arima_Errors <- tsdisplay(arima.errors(fit2), main="ARIMA ERRORS")
+
+accu2 <- accuracy(for_fit2,ts.DLTR_Test[1:12])
+accu2[,2:3]
+
+# Fit Adj Close With External Regressor With Volume minus 2
+fit3 <- Arima(ts.DLTR_Train[,6], xreg=ts.DLTR_Train[,7],order=c(1,2,0))
+for_fit3 <- forecast(fit3,xreg=DLTR$Volume,h=12)
+plot(for_fit3)
+
+Arima_Errors3 <- tsdisplay(arima.errors(fit3), main="ARIMA ERRORS")
+
+accu3 <- accuracy(for_fit3,ts.DLTR_Test[1:12])
+accu3[,2:3]
+
