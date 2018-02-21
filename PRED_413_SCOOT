@@ -198,3 +198,64 @@ process_model(arima(sales_train_ts, xreg = sales_train$Advertising, order=c(1,1,
 process_model(arima(sales_train_ts, xreg = sales_train$Advertising, order=c(1,1,1)), "Auto.arima with ads lagged, differenced, moving average")
 process_model(arima(sales_train_ts, xreg = sales_train$Advertising, order=c(2,1,0)), "Auto.arima with ads lagged twice and differenced")
 process_model(arima(sales_train_ts, xreg = sales_train$Advertising, order=c(2,1,0)), "Auto.arima with ads lagged twice and differenced twice")
+
+Week_7 
+library("forecast")
+library(dplyr)
+library(tidyr)
+library("fGarch")
+sales_df <- read.csv("data/advertising-and-sales-data-36-co.csv", stringsAsFactors=FALSE)
+
+sales_df$MonthYear <- sales_df$Month
+sales_updated <- separate(sales_df, col='Month', into = c('year', 'month' ), sep='-')
+sales_series <- ts(sales_df$Sales, deltat = 1/12, start = c(2001, 1))
+plot(sales_updated$Sales, main="Sales and Advertising", ylab = "$", xlab="Month")
+lines(sales_updated$Advertising,col=4)
+lines(sales_updated$Sales, col=2)
+ legend("topleft", lty=1, col=c(4,2),
+ legend=c("Advertising", "Sales"))
+
+process_garch_model <- function(fit_garch, message){
+ forecast_garch <- predict(fit_garch, n.ahead = 12)
+ diffs_garch <- forecast_garch$meanForecast - sales_test$Sales
+ print(paste(message, "ME", mean(diffs_garch), "RMSE", sqrt(mean(diffs_garch^2)), "MAE", mean(abs(diffs_garch))))
+ 
+}
+
+# Train/test split
+sales_train <- head(sales_updated, 24)
+sales_test <- tail(sales_updated, 12)
+sales_train_ts <- ts(sales_train$Sales, deltat = 1/12, start = c(2001, 1))
+sales_test_ts <- ts(sales_test$Sales, deltat = 1/12, start = c(2003, 1))
+
+arima_fit <- arima(sales_train_ts, order=c(2,1,0), seasonal=c(0,1,0))
+forecast_with_ads <- forecast(arima_fit, h = 12)
+print(paste("Forecast with no external regressors"))
+print(accuracy(forecast_with_ads, sales_test_ts))
+
+arima_fit_regr <- arima(sales_train_ts, xreg = sales_train$Advertising, order=c(2,1,0), seasonal=c(0,1,0))
+plot(arima_fit_regr$residuals, main="Residual Plot for Training")
+forecast_with_ads_regr <- forecast(arima_fit_regr, h = 12, xreg = sales_test$Advertising)
+diffs <- forecast_with_ads_regr$mean - sales_test$Sales
+plot(diffs, main="Residual Plot for test")
+print(accuracy(forecast_with_ads_regr, sales_test_ts))
+
+fit_garch_1_1 <- garchFit(formula = ~ garch(1, 1), data = sales_train_ts, trace=FALSE)
+process_garch_model(fit_garch_1_1, "Garch on raw data")
+
+# add in residuals through garch
+fit_garch_1_1 <- garchFit(formula = ~ garch(1, 1), data = arima_fit_regr$residuals, trace=FALSE)
+forecast_garch <- predict(fit_garch_1_1, n.ahead = 12)
+updated_forecast <- forecast_with_ads_regr$mean + forecast_garch$meanForecast
+diffs_garch <- updated_forecast - sales_test$Sales
+print(paste("Residuals Garch Forecast", "ME", mean(diffs_garch), "RMSE", sqrt(mean(diffs_garch^2)), "MAE", mean(abs(diffs_garch))))
+
+print("start fit_garch_2_1")
+fit_garch_2_1 <- garchFit(formula = ~ garch(2, 1), data = sales_train_ts, trace=FALSE)
+print("end fit_garch_2_1")
+process_garch_model(fit_garch_2_1, "garch 2,1")
+
+print("end arima 2,1, garch 1,1")
+fit_garch_2_1 <- garchFit(formula = ~ arma(2,1)+garch(1, 1), data = sales_train_ts, trace=FALSE)
+print("end arima 2,1, garch 1,1")
+process_garch_model(fit_garch_2_1, "arima 2,1, garch 1,1")
