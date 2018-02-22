@@ -1,0 +1,48 @@
+# I Started Using the Same Dataset that i used last week and my goal is to add Garch model
+into my analysis. Garch model is used to model volatility in the data which can be defined
+as ...
+ I am interested in univariate data therefore i have to remove other columns from the data 
+ and simply use "closing prices" to build my models, perform forecast on them, and 
+ examine their accuracy while looking at how it performs on test data.
+ 
+ I converted the Dataset into Time Series data and here is the plot of the initial time 
+ series. 
+ 
+ ##### IMAGE 07_01 HERE 
+ 
+ 
+ I fit the data into simple naive model just to see how the data performs with naive model.
+ 
+ I went further to fit the data into ETS model, auto.arima model, and Arima(1,1,0)
+ model
+ 
+ Here is the RMSE MAE for the models which are variance metrics that are used to select
+ best model.
+### image of auto.arima Forecast 
+            RMSE     MAE
+ETS         0.89     0.59
+auto.arima  0.78     0.59
+arima(1,1,0)0.88     0.59
+
+
+Applying GARCH model left my heart unGUARDED. I struggled with understanding how to get
+the RMSE and MAE. I looked at expert students' code and see how they did it but i found 
+their methods quite different from what i have in mind 
+
+
+
+I applied Garch(1,1) to the residuals of the three models that i created. I used the results 
+of the three models on the predict function in fGarch and was able to predict over the next 
+2  periods. which yielded meanForecast for the three models.
+
+                 meanForecast
+pred_1           0.1688331
+pred_2           0.1419778
+pred_3           0.1708176 
+
+pred_2 seems to produce better result than the rest of the predict functions.
+
+I didn't understand the output that i got from Garchfit, i understand it is
+a new concept to me. I am still learning while i am looking at other people codes to 
+understand their thinking and see what i can learn from it. I  hope to GUARD my heart 
+against being broken by GARCH.
