@@ -259,3 +259,100 @@ print("end arima 2,1, garch 1,1")
 fit_garch_2_1 <- garchFit(formula = ~ arma(2,1)+garch(1, 1), data = sales_train_ts, trace=FALSE)
 print("end arima 2,1, garch 1,1")
 process_garch_model(fit_garch_2_1, "arima 2,1, garch 1,1")
+
+ibrary("forecast")
+library(zoo)
+library(dplyr)
+library(tidyr)
+library(vars)
+library(MTS)
+tractor_df <- read.csv("data/TwoStocks.csv", stringsAsFactors=FALSE)
+
+train_percent <- 0.8
+kubota_df <- read.csv("data/KU.csv", stringsAsFactors=FALSE)
+train_length = round(nrow(kubota_df) * train_percent, 0)
+kubota_train <- kubota_df[1:train_length,]
+test_start <- train_length + 1
+kubota_test <- kubota_df[test_start:nrow(kubota_df),]
+
+kubota_train_ts <- as.ts(kubota_train$Kubota)
+kubota_test_ts <- as.ts(kubota_test$Kubota)
+fit_kubota <- auto.arima(kubota_train_ts)
+print(fit_kubota)
+forecast_kubota <- forecast(fit_kubota, h=nrow(kubota_test))
+kubota_test$diffs <- kubota_test$Kubota - forecast_kubota$mean
+print(paste("Arima Forecast MAE", mean(abs(kubota_test$diffs)), "RMSE", sqrt(mean((kubota_test$diffs)^2))))
+
+end_train <- round(nrow(time_series_zoo) * train_percent)
+start_test <- end_train + 1
+time_series_zoo_train <- time_series_zoo[1:end_train]
+time_series_zoo_test <- time_series_zoo[start_test:nrow(time_series_zoo)]
+# var1 <- VAR(time_series_zoo_train, p=1)
+train_df <- tractor_df[1:train_length,c('Deere', 'Kubota')]
+test_df <- tractor_df[test_start:nrow(tractor_df),c('Deere', 'Kubota')]
+varmaFit <- VARMA(train_df,p=1,q=1,include.mean=FALSE)
+forecast_tractors <- VARMApred(varmaFit, h=nrow(test_df))
+deere_forecast <- forecast_tractors$pred[1:252]
+kubota_forecast <- forecast_tractors$pred[253:504]
+kubota_diffs <- kubota_forecast - kubota_test$Kubota
+print(paste("Include Deere Lag with VARMA", mean(abs(kubota_diffs)), "RMSE", sqrt(mean((kubota_diffs)^2))))
+
+
+Week 9
+
+library("forecast")
+library(zoo)
+library(dplyr)
+library(tidyr)
+library(vars)
+deere_df <- read.csv("data/DE.csv", stringsAsFactors=FALSE)
+kubota_df <- read.csv("data/KU.csv", stringsAsFactors=FALSE)
+tractor_df <- read.csv("data/TwoStocks.csv", stringsAsFactors=FALSE)
+time_series_zoo <- read.zoo(tractor_df, format = "%m/%d/%Y")
+
+full_ts <- as.ts(time_series_zoo)
+deere_ts <- as.ts(read.zoo(deere_df, format = "%m/%d/%Y"), start=c(2013,02,25))
+deere_ts_clean <- tsclean(deere_ts)
+print(length(deere_ts))
+kubota_ts <- read.zoo(kubota_df, format = "%m/%d/%Y")
+train_percent <- 0.8
+kubota_df <- read.csv("data/KU.csv", stringsAsFactors=FALSE)
+train_length = round(nrow(kubota_df) * train_percent, 0)
+kubota_train <- kubota_df[1:train_length,]
+test_start <- train_length + 1
+kubota_test <- kubota_df[test_start:nrow(kubota_df),]
+
+kubota_train_ts <- as.ts(kubota_train$Kubota)
+kubota_test_ts <- as.ts(kubota_test$Kubota)
+
+fit_kubota <- nnetar(kubota_train_ts)
+print(fit_kubota)
+forecast_kubota <- forecast(fit_kubota, h=nrow(kubota_test))
+kubota_test$diffs <- kubota_test$Kubota - forecast_kubota$mean
+print(paste("NNetar Forecast MAE", mean(abs(kubota_test$diffs)), "RMSE", sqrt(mean((kubota_test$diffs)^2))))
+
+deere_df <- read.csv("data/DE.csv", stringsAsFactors=FALSE)
+train_length = round(nrow(deere_df) * 0.8, 0)
+test_start <- train_length + 1
+deere_train <- deere_df[1:train_length,]
+deere_test <- deere_df[test_start:nrow(deere_df),]
+deere_train_ts <- as.ts(deere_train$Deere)
+deere_test_ts <- as.ts(deere_test$Deere)
+print("Deere Arima accuracy")
+fit_deere <- auto.arima(deere_train_ts)
+print(fit_deere)
+forecast_deere <- forecast(fit_deere, h=nrow(deere_test))
+accuracy(forecast_deere, deere_test$Deere)
+
+kubota_train_with_regressor <- kubota_df[2:train_length,]
+ending_location <- train_length-1
+kubota_train_with_regressor$deere <- deere_train$Deere[1:ending_location]
+kubota_test_with_regressor<- kubota_test
+kubota_test_with_regressor$deere <- rep(107.73)
+kubota_train_ts_for_regressor <- as.ts(kubota_train_with_regressor$Kubota)
+kubota_test_ts <- as.ts(kubota_test$Kubota)
+
+fit_kubota_regressor <- nnetar(kubota_train_ts_for_regressor, xreg=kubota_train_with_regressor$deere)
+forecast_kubota_regressor <- forecast(fit_kubota_regressor, h=nrow(kubota_test), xreg=kubota_test_with_regressor$deere)
+kubota_test_with_regressor$diffs <- kubota_test$Kubota - forecast_kubota_regressor$mean
+print(paste("NNetar Forecast MAE with Regressor", mean(abs(kubota_test_with_regressor$diffs)), "RMSE", sqrt(mean((kubota_test_with_regressor$diffs)^2))))
