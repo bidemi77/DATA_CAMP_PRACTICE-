@@ -1,0 +1,64 @@
+This forecast indicates that the price of P&G will drop while the stock print of Walmart will remain constant.  
+
+# R Code for the Vector Autoregression.
+
+install.packages("vars")
+library(tidyr)
+library(vars)
+library(forecast)
+#Read-in 5-year Cardinal Health stock price data
+PGData <- read.csv("/Users/nex/Desktop/PG.csv",header=T)
+head(PGData)
+
+#Separate year and month from "date" variable
+PGData_updated <- separate(PGData, col='Date', into= c('month','day','year'), sep='/')
+head(PGData_updated)
+PGData_updated$Adj.Close
+
+#Establish time series variable
+PG_ts <- ts(PGData_updated$Adj.Close, start = c(2013,03),end=c(2018,3),deltat=1/12)
+plot(PG_ts)
+
+#Read-in 5-year Walmart stock price data
+WMTData <- read.csv("/Users/nex/Desktop/WMT.csv",header=T)
+head(WMTData)
+
+#Separate year and month from "date" variable
+WMTData_updated <- separate(WMTData, col='Date', into = c('month', 'day','year' ),sep='/')
+head(WMTData_updated)
+WMTData_updated$Adj.Close
+
+
+# Establish time series variable for Walmart Stock Price.
+WMT_ts <- ts(WMTData_updated$Adj.Close, start=c(2013,3),end=c(2018,3), deltat=1/12)
+
+
+#Combine PG and WMT
+Combined_Data <- ts.union(PG_ts, WMT_ts)
+head(Combined_Data)
+plot(Combined_Data, ylab = "Adj Closing PG & WMT", xlab = "Year",
+main = "Yearly Adj Closing For PG & WMT; 2013 - 2018")
+
+# Select the number of Lags Using VARselect
+
+VARselect(Combined_Data, lag.max=8, type="const")$selection
+
+# Perform Serial test To Validate the Null Hypothesis.
+
+var <- VAR(Combined_Data, p=1, type = "const")
+serial.test(var, lags.pt = 10, type = "PT.asymptotic")
+
+var2 <- VAR(Combined_Data, p=2, type = "const")
+serial.test(var2, lags.pt = 10, type = "PT.asymptotic")
+
+var3 <- VAR(Combined_Data, p=3, type = "const")
+serial.test(var3, lags.pt = 10, type = "PT.asymptotic")
+
+ # Print Summary of Select Model
+
+summary(var3)
+
+# Create a Plot of Forecast of (var3)
+var_cast <- forecast(var3)
+plot(var_cast, xlab = "Year")
+
