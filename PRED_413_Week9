@@ -1,0 +1,70 @@
+library(fma)
+library(ggplot2)
+library(forecast)
+library(tidyr)
+
+prod_sales <- read.csv('/Users/nex/Desktop/us-monthly-sales-of-petroleum-an.csv')
+head(prod_sales)
+tail(prod_sales)
+
+# Separate Month Column Into 'Year' and 'Month'.
+prod_sales2 <- separate(prod_sales, col=Month, into=c('Year', 'Month'), sep='-')
+head(prod_sales2)
+str(prod_sales2)
+
+# Convert To Time Series.
+prod_sales_ts <- ts(prod_sales2$Petrol, start=c(1971,01), end=c(1991,12), deltat=1/12)
+plot(prod_sales_ts,main="Sales of Petroleum and Related Products 1971-91")
+
+# Split To Train and Test Data 
+train_prod_sales <- window(prod_sales_ts,start=c(1971,01), end=c(1988,12),deltat=1/12)
+test_prod_sales <- window(prod_sales_ts,start=c(1989,01), end=c(1991,12),deltat=1/12) 
+
+# External Regressor
+prod_sales_xreg <- ts(prod_sales2$Vehicles,start=c(1971,01),end=c(1991,12), deltat=1/12)
+xreg_train <- window(prod_sales_xreg,start=c(1971,01),end=c(1988,12),deltat=1/12) 
+xreg_test <- window(prod_sales_xreg, start=c(1989,01), end=c(1991,12),deltat=1/12)
+
+
+# Fit Naive Model 
+fit.naive <- naive(train_prod_sales)
+plot(fit.naive)
+
+# ETS Model
+fit.ets.train <- ets(train_prod_sales)
+plot(forecast(fit.ets.train,h=12))
+
+
+fit.auto <- auto.arima(train_prod_sales)
+plot(forecast(fit.auto,h=12))
+
+
+fit.nn <- nnetar(train_prod_sales)
+plot(forecast(fit.nn,h=12))
+
+
+fit_nn_xreg <- nnetar(train_prod_sales, xreg=xreg_train)
+plot(forecast(fit.nn.xreg,xreg=xreg_train,h=12))
+
+compare accuracy 
+accu.naive <- accuracy(forecast(fit.naive),test_prod_sales)[,1:7]
+accu.naive
+
+accu.ets1 <- accuracy(forecast(fit.ets.train),test_prod_sales)[,1:7]
+accu.ets1
+
+accu.arima <- accuracy(forecast(fit.autoarima.train),test_prod_sales)
+accu.arima
+accu.nn <- accuracy(forecast(fit.nn),test_prod_sales)
+accu.nn
+accu.xreg <-accuracy(forecast(fit.nn.xreg,xreg=xreg_test))
+accu.xreg
+
+               ME      RMSE     MAE     MASE
+#accu.naive  0.040     0.46     0.33    1.25
+#accu.ets   -0.0088    0.46     0.32    0.20
+#accu.arima  0.024     0.42     0.30    0.19
+#accu.nn     0.00005   0.45     0.32    0.20
+#accu.xreg  -0.00016   0.43     0.31    0.19
+               
+               
